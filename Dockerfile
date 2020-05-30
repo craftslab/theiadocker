@@ -23,11 +23,7 @@ RUN set -ex \
     DD8F2338BAE7501E3DD5AC78C273792F7D83545D \
     A48C2BEE680E841632CD4E44F07496B3EB3C1762 \
     ; do \
-    gpg --batch --keyserver ipv4.pool.sks-keyservers.net --recv-keys "$key" || \
-    gpg --batch --keyserver pool.sks-keyservers.net --recv-keys "$key" || \
-    gpg --batch --keyserver pgp.mit.edu --recv-keys "$key" || \
-    gpg --batch --keyserver keyserver.pgp.com --recv-keys "$key" || \
-    gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$key" ; \
+    gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
     done
 
 ARG NODE_VERSION=10.15.3
@@ -51,26 +47,9 @@ RUN ARCH= && dpkgArch="$(dpkg --print-architecture)" \
     && rm "node-v$NODE_VERSION-linux-$ARCH.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
     && ln -s /usr/local/bin/node /usr/local/bin/nodejs
 
-ENV YARN_VERSION 1.13.0
-
-RUN set -ex \
-    && for key in \
-    6A010C5166006599AA17F08146C2130DFD2497F5 \
-    ; do \
-    gpg --batch --keyserver ipv4.pool.sks-keyservers.net --recv-keys "$key" || \
-    gpg --batch --keyserver pool.sks-keyservers.net --recv-keys "$key" || \
-    gpg --batch --keyserver pgp.mit.edu --recv-keys "$key" || \
-    gpg --batch --keyserver keyserver.pgp.com --recv-keys "$key" || \
-    gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$key" ; \
-    done \
-    && curl -fSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
-    && curl -fSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
-    && gpg --batch --verify yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
-    && mkdir -p /opt/yarn \
-    && tar -xzf yarn-v$YARN_VERSION.tar.gz -C /opt/yarn --strip-components=1 \
-    && ln -s /opt/yarn/bin/yarn /usr/local/bin/yarn \
-    && ln -s /opt/yarn/bin/yarn /usr/local/bin/yarnpkg \
-    && rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
+    apt-get update && apt-get -y install yarn
 
 #Developer tools
 
@@ -80,13 +59,13 @@ RUN apt-get -y install git sudo
 #LSPs
 
 ##GO
-ENV GO_VERSION 1.14
+ENV GO_VERSION 1.14.3
 ENV GOPATH=/usr/local/go-packages
 ENV GO_ROOT=/usr/local/go
 ENV PATH $PATH:/usr/local/go/bin
 ENV PATH $PATH:${GOPATH}/bin
 
-RUN curl -sS https://storage.googleapis.com/golang/go$GO_VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf -
+RUN curl -sS https://gomirrors.org/dl/go/go$GO_VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 
 RUN go get -u -v github.com/mdempsky/gocode && \
     go get -u -v github.com/uudashr/gopkgs/cmd/gopkgs && \
@@ -192,7 +171,8 @@ WORKDIR /home/theia
 ADD $version.package.json ./package.json
 ARG GITHUB_TOKEN
 # using "NODE_OPTIONS=..." to avoid out-of-memory problem in CI
-RUN yarn --cache-folder ./ycache && rm -rf ./ycache && \
+RUN yarn config set registry https://registry.npm.taobao.org && \
+    yarn --cache-folder ./ycache && rm -rf ./ycache && \
     NODE_OPTIONS="--max_old_space_size=4096" yarn theia build ;\
     yarn theia download:plugins
 EXPOSE 3000
