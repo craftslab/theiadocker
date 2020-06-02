@@ -26,7 +26,7 @@ RUN set -ex \
     gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys "$key" ; \
     done
 
-ARG NODE_VERSION=10.15.3
+ARG NODE_VERSION=11.9.0
 ENV NODE_VERSION $NODE_VERSION
 
 RUN ARCH= && dpkgArch="$(dpkg --print-architecture)" \
@@ -67,7 +67,9 @@ ENV PATH $PATH:${GOPATH}/bin
 
 RUN curl -sS https://gomirrors.org/dl/go/go$GO_VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 
-RUN go get -u -v github.com/mdempsky/gocode && \
+RUN go env -w GO111MODULE=on && \
+    go env -w GOPROXY=https://goproxy.io,direct && \
+    go get -u -v github.com/mdempsky/gocode && \
     go get -u -v github.com/uudashr/gopkgs/cmd/gopkgs && \
     go get -u -v github.com/ramya-rao-a/go-outline && \
     go get -u -v github.com/acroca/go-symbols && \
@@ -84,12 +86,10 @@ RUN go get -u -v github.com/mdempsky/gocode && \
     go get -u -v winterdrache.de/goformat/goformat && \
     go get -u -v golang.org/x/lint/golint && \
     go get -u -v github.com/cweill/gotests/... && \
-    go get -u -v github.com/alecthomas/gometalinter && \
     go get -u -v honnef.co/go/tools/... && \
     GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint && \
     go get -u -v github.com/mgechev/revive && \
     go get -u -v github.com/sourcegraph/go-langserver && \
-    go get -u -v github.com/go-delve/delve/cmd/dlv && \
     go get -u -v github.com/davidrjenni/reftools/cmd/fillstruct && \
     go get -u -v github.com/godoctor/godoctor
 
